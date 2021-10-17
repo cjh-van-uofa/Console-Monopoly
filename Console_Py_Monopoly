@@ -148,7 +148,8 @@ class Board:
         0,[50,200,600,1400,1700,2000,200,200]]
 
         for i in range(40):
-            self._board.append([tile_types[i],tile_names[i],tile_cost[i],tile_house_data[i],5]) #5 represents whether the tile is owned or not. player 1 = 0, player 2 = 0, etc.
+            self._board.append([tile_types[i],tile_names[i],tile_cost[i],tile_house_data[i],5]) 
+            #5 represents whether the tile is owned or not. player 1 = 0, player 2 = 0, etc.
     
 
 class Player:
