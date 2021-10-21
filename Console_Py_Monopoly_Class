@@ -1,0 +1,619 @@
+"""
+Classes for the Console Monopoly game
+"""
+
+
+import random
+import time
+import sys
+
+
+class Player:
+    def __init__(self,name):
+        self.money = 1500
+        self.jail = False
+        self.jail_free = 0 
+        self.name = name
+        self.pos = 0 #player position
+        self.doubles = 0 #how many doubles the player has rolled
+        self.rolls = 1
+        self.prop = [] #properties owned
+        self.brown_cg = 0
+        self.light_b_cg = 0
+        self.pink_cg = 0
+        self.orange_cg = 0
+        self.red_cg = 0
+        self.yellow_cg = 0
+        self.green_cg = 0
+        self.blue_cg = 0
+        self.rr_cg = 0
+        self.util_cg = 0
+
+
+    def roll_dice(self,x): #x is either 1 or 0. This differentiates between rolling for starting place and rolling in game
+        die_1 = random.randint(1,6)
+        die_2 = random.randint(1,6)
+        print('Rolling die...')
+        for i in range(10):
+            num1,num2 = random.randint(1,6),random.randint(1,6)
+            if i != 9:
+                sys.stdout.write("\r" + str(num1)+' '+str(num2))
+            else:
+                sys.stdout.write("\r" + str(die_1)+' '+str(die_2))
+            sys.stdout.flush()
+#            sleep(.4)
+#        sleep(1.5)
+        print()
+        self.recent_roll = die_1+die_2
+        if x == 1:
+            if die_1 == die_2:
+                self.doubles+=1
+                self.rolls+=1
+                print('Doubles! +1 roll this turn.')
+            if self.recent_roll in {8,11}:
+                string = 'You rolled an'
+            else:
+                string = 'You rolled a'
+            print(string,self.recent_roll)
+            print('\n\n')
+        return die_1+die_2
+    
+    def go(self):
+        self.money+=200
+    
+    def add_prop(self,c):  #second return number is the max amount of properties of that color.
+        if c == 'Brown':
+            return self.brown_cg,2
+        elif c == 'Light Blue':
+            return self.light_b_cg,3
+        elif c == 'Pink':
+            return self.pink_cg,3
+        elif c == 'Orange':
+            return self.orange_cg,3
+        elif c == 'Red':
+            return self.red_cg,3
+        elif c == 'Yellow':
+            return self.yellow_cg,3
+        elif c == 'Green':
+            return self.green_cg,3
+        elif c == 'Blue':
+            return self.blue_cg,2
+        elif c == 'RR':
+            return self.rr_cg,4
+        elif c == 'U':
+            return self.util_cg,2
+
+    
+class Board:
+    def __init__(self):
+        self.game_over = False
+        self.board = []
+        '''
+        Tile types are to differentiate from the types of tiles. 0 = property, 1 = community chest,
+        2 = chance, 3 = unique, 4 = railroad, 5 = electric company/water works.
+        '''
+        tile_types = [3,0,1,0,3,4,0,2,0,0,3,0,5,0,0,4,0,1,0,0,3,0,2,0,0,4,0,0,5,0,3,0,0,1,0,4,2,0,3,0]
+
+        tile_names = ['GO','Mediterranean Avenue','Community Chest','Baltic Avenue','Income Tax',
+        'Reading Railroad','Oriental Avenue','Chance','Vermont Avenue',
+        'Connecticut Avenue','Just Visiting','St. Charles Place','Electric Company',
+        'States Avenue','Virgina Avenue','Pennsylvania Railroad','St. James Place',
+        'Community Chest','Tennessee Avenue','New York Avenue','Free Parking',
+        'Kentucky Avenue','Chance','Indiana Avenue','Illinois Avenue',
+        'B. & O. Railroad','Atlantic Avenue','Ventnor Avenue','Water Works',
+        'Marvin Gardens','Go To Jail','Pacific Avenue','North Carolina Avenue',
+        'Community Chest','Pennsylvania Avenue','Short line','Chance','Park Place',
+        'Luxury Tax','Boardwalk']
+
+        tile_cost =  [0,60,0,60,200,200,100,0,100,120,0,140,150,140,160,200,180,0,180,200,0,220,0,220,
+                      240,200,260,260,150,280,0,300,300,0,320,200,0,350,100,400]
+
+        '''
+        This is a 2d list of all the stuff about houses. Left to right numbers represent,rent with 
+        0,1,2,3,4 houses and hotel. house cost, and finally mortgage price. 0's mean the data is n\a 
+        to that tile.
+        '''
+        tile_house_data = [0,[2,10,30,90,160,250,50,30],0,[4,20,60,180,320,450,50,30],0,[25,50,100,200,100],
+        [6,30,90,270,400,550,50,50],0,[6,30,90,270,400,550,50,50],[8,40,100,300,450,600,50,60],0,
+        [10,50,150,450,625,750,100,70],[150,75],[10,50,150,450,625,750,100,70],[12,60,180,500,700,900,100,80],
+        [25,50,100,200,100],[14,70,200,550,750,950,100,90],0,[14,70,200,550,750,950,100,90],[16,80,220,600,800,1000,100,100],
+        0,[18,90,250,700,875,1050,150,110],0,[18,90,250,700,875,1050,150,110],[20,100,300,750,925,1100,150,120],
+        [25,50,100,200,100],[22,110,330,800,975,1150,150,130],[22,110,330,800,975,1150,150,130],[150,75],
+        [24,120,360,850,1025,1200,150,140],0,[26,130,390,900,1100,1275,200,150],[26,130,390,900,1100,1275,200,150],
+        0,[28,150,450,1000,1200,1400,200,160],[25,50,100,200,100],0,[35,175,500,1100,1300,1500,200,175],
+        0,[50,200,600,1400,1700,2000,200,200]]
+
+        tile_color_data = [0,'Brown',0,'Brown',0,'RR','Light Blue',0,'Light Blue','Light Blue',0,'Pink','U','Pink','Pink','RR',
+        'Orange',0,'Orange','Orange',0,'Red',0,'Red','Red','RR','Yellow','Yellow','U','Yellow',0,'Green','Green',0,'Green',
+        'RR',0,'Blue',0,'Blue']
+
+        tile_card = [0,"  +--------------------------------+\n"+
+                     "  |      Mediterranean Avenue      |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $2            |\n"+
+                     "  |  With 1 House             $10  |\n"+
+                     "  |  With 2 Houses            $30  |\n"+
+                     "  |  With 3 Houses            $90  |\n"+
+                     "  |  With 4 Houses           $160  |\n"+
+                     "  |         With Hotel $250        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $30       |\n"+
+                     "  |      Houses cost $50 each      |\n"+
+                     "  |   Hotels, $50 with 4 houses    |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Brown       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |          Baltic Avenue         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $4            |\n"+
+                     "  |  With 1 House             $20  |\n"+
+                     "  |  With 2 Houses            $60  |\n"+
+                     "  |  With 3 Houses           $180  |\n"+
+                     "  |  With 4 Houses           $320  |\n"+
+                     "  |         With Hotel $450        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $30       |\n"+
+                     "  |      Houses cost $50 each      |\n"+
+                     "  |   Hotels, $50 with 4 houses    |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Brown       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |        Reading Railroad        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $25           |\n"+
+                     "  |  If 2 R.R.'s are owned    $50  |\n"+
+                     "  |  If 3 R.R.'s are owned   $100  |\n"+
+                     "  |  If 4 R.R.'s are owned   $200  |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $100      |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         Oriental Avenue        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $6            |\n"+
+                     "  |  With 1 House             $30  |\n"+
+                     "  |  With 2 Houses            $90  |\n"+
+                     "  |  With 3 Houses           $270  |\n"+
+                     "  |  With 4 Houses           $400  |\n"+
+                     "  |         With Hotel $550        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $50       |\n"+
+                     "  |      Houses cost $50 each      |\n"+
+                     "  |   Hotels, $50 with 4 houses    |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |    Color-group: Light Blue     |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |          Vermont Avenue        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $6            |\n"+
+                     "  |  With 1 House             $30  |\n"+
+                     "  |  With 2 Houses            $90  |\n"+
+                     "  |  With 3 Houses           $270  |\n"+
+                     "  |  With 4 Houses           $400  |\n"+
+                     "  |         With Hotel $550        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $50       |\n"+
+                     "  |      Houses cost $50 each      |\n"+
+                     "  |   Hotels, $50 with 4 houses    |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |    Color-group: Light Blue     |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |       Connecticut Avenue       |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $8            |\n"+
+                     "  |  With 1 House             $40  |\n"+
+                     "  |  With 2 Houses           $100  |\n"+
+                     "  |  With 3 Houses           $300  |\n"+
+                     "  |  With 4 Houses           $450  |\n"+
+                     "  |         With Hotel $600        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $60       |\n"+
+                     "  |      Houses cost $50 each      |\n"+
+                     "  |   Hotels, $50 with 4 houses    |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |    Color-group: Light Blue     |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |        St. Charles Place       |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $10           |\n"+
+                     "  |  With 1 House             $50  |\n"+
+                     "  |  With 2 Houses           $150  |\n"+
+                     "  |  With 3 Houses           $450  |\n"+
+                     "  |  With 4 Houses           $625  |\n"+
+                     "  |         With Hotel $750        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $70       |\n"+
+                     "  |      Houses cost $100 each     |\n"+
+                     "  |   Hotels, $100 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Pink        |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         Electric Company       |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |   If one 'Utility' is owned,   |\n"+
+                     "  |   rent is 4 times the amount   |\n"+
+                     "  |       shown on the die.        |\n"+
+                     "  |                                |\n"+
+                     "  |    If both 'Utilities' are     |\n"+
+                     "  |  owned, rent is 10 times the   |\n"+
+                     "  |    amount shown on the die,    |\n"+
+                     "  |       Mortgage Value $75       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |          States Avenue         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $10           |\n"+
+                     "  |  With 1 House             $50  |\n"+
+                     "  |  With 2 Houses           $150  |\n"+
+                     "  |  With 3 Houses           $450  |\n"+
+                     "  |  With 4 Houses           $625  |\n"+
+                     "  |         With Hotel $750        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $70       |\n"+
+                     "  |      Houses cost $100 each     |\n"+
+                     "  |   Hotels, $100 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Pink        |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         Virginia Avenue        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $12           |\n"+
+                     "  |  With 1 House             $60  |\n"+
+                     "  |  With 2 Houses           $180  |\n"+
+                     "  |  With 3 Houses           $500  |\n"+
+                     "  |  With 4 Houses           $700  |\n"+
+                     "  |         With Hotel $900        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $80       |\n"+
+                     "  |      Houses cost $100 each     |\n"+
+                     "  |   Hotels, $100 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Pink        |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |     Pennsylvania Railroad      |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $25           |\n"+
+                     "  |  If 2 R.R.'s are owned    $50  |\n"+
+                     "  |  If 3 R.R.'s are owned   $100  |\n"+
+                     "  |  If 4 R.R.'s are owned   $200  |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $100      |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         St. James Place        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $14           |\n"+
+                     "  |  With 1 House             $70  |\n"+
+                     "  |  With 2 Houses           $200  |\n"+
+                     "  |  With 3 Houses           $550  |\n"+
+                     "  |  With 4 Houses           $750  |\n"+
+                     "  |         With Hotel $950        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $90       |\n"+
+                     "  |      Houses cost $100 each     |\n"+
+                     "  |   Hotels, $100 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |      Color-group: Orange       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |         Tennessee Place        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $14           |\n"+
+                     "  |  With 1 House             $70  |\n"+
+                     "  |  With 2 Houses           $200  |\n"+
+                     "  |  With 3 Houses           $550  |\n"+
+                     "  |  With 4 Houses           $750  |\n"+
+                     "  |         With Hotel $950        |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $90       |\n"+
+                     "  |      Houses cost $100 each     |\n"+
+                     "  |   Hotels, $100 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |      Color-group: Orange       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         New York Avenue        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $16           |\n"+
+                     "  |  With 1 House             $80  |\n"+
+                     "  |  With 2 Houses           $220  |\n"+
+                     "  |  With 3 Houses           $600  |\n"+
+                     "  |  With 4 Houses           $800  |\n"+
+                     "  |         With Hotel $1000       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $100      |\n"+
+                     "  |      Houses cost $100 each     |\n"+
+                     "  |   Hotels, $100 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |      Color-group: Orange       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |         Kentucky Avenue        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $18           |\n"+
+                     "  |  With 1 House             $90  |\n"+
+                     "  |  With 2 Houses           $250  |\n"+
+                     "  |  With 3 Houses           $700  |\n"+
+                     "  |  With 4 Houses           $875  |\n"+
+                     "  |         With Hotel $1050       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $110      |\n"+
+                     "  |      Houses cost $150 each     |\n"+
+                     "  |   Hotels, $150 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |        Color-group: Red        |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |         Indiana Avenue         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $20           |\n"+
+                     "  |  With 1 House             $90  |\n"+
+                     "  |  With 2 Houses           $250  |\n"+
+                     "  |  With 3 Houses           $700  |\n"+
+                     "  |  With 4 Houses           $875  |\n"+
+                     "  |         With Hotel $1050       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $110      |\n"+
+                     "  |      Houses cost $150 each     |\n"+
+                     "  |   Hotels, $150 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |        Color-group: Red        |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |        Illinois Avenue         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $22           |\n"+
+                     "  |  With 1 House            $100  |\n"+
+                     "  |  With 2 Houses           $300  |\n"+
+                     "  |  With 3 Houses           $750  |\n"+
+                     "  |  With 4 Houses           $925  |\n"+
+                     "  |         With Hotel $1100       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $120      |\n"+
+                     "  |      Houses cost $150 each     |\n"+
+                     "  |   Hotels, $150 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |        Color-group: Red        |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |        B. & O. Railroad        |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $25           |\n"+
+                     "  |  If 2 R.R.'s are owned    $50  |\n"+
+                     "  |  If 3 R.R.'s are owned   $100  |\n"+
+                     "  |  If 4 R.R.'s are owned   $200  |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $100      |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |        Atlantic Avenue         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $22           |\n"+
+                     "  |  With 1 House            $110  |\n"+
+                     "  |  With 2 Houses           $330  |\n"+
+                     "  |  With 3 Houses           $800  |\n"+
+                     "  |  With 4 Houses           $975  |\n"+
+                     "  |         With Hotel $1150       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $130      |\n"+
+                     "  |      Houses cost $150 each     |\n"+
+                     "  |   Hotels, $150 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |      Color-group: Yellow       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         Ventor Avenue          |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $22           |\n"+
+                     "  |  With 1 House            $110  |\n"+
+                     "  |  With 2 Houses           $330  |\n"+
+                     "  |  With 3 Houses           $800  |\n"+
+                     "  |  With 4 Houses           $975  |\n"+
+                     "  |         With Hotel $1150       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $130      |\n"+
+                     "  |      Houses cost $150 each     |\n"+
+                     "  |   Hotels, $150 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |      Color-group: Yellow       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |           Water Works          |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |   If one 'Utility' is owned,   |\n"+
+                     "  |   rent is 4 times the amount   |\n"+
+                     "  |       shown on the die.        |\n"+
+                     "  |                                |\n"+
+                     "  |    If both 'Utilities' are     |\n"+
+                     "  |  owned, rent is 10 times the   |\n"+
+                     "  |    amount shown on the die,    |\n"+
+                     "  |       Mortgage Value $75       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |         Marvin Gardens         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $24           |\n"+
+                     "  |  With 1 House            $120  |\n"+
+                     "  |  With 2 Houses           $360  |\n"+
+                     "  |  With 3 Houses           $850  |\n"+
+                     "  |  With 4 Houses          $1025  |\n"+
+                     "  |         With Hotel $1200       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $140      |\n"+
+                     "  |      Houses cost $150 each     |\n"+
+                     "  |   Hotels, $150 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |      Color-group: Yellow       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |         Pacific Avenue         |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $26           |\n"+
+                     "  |  With 1 House            $130  |\n"+
+                     "  |  With 2 Houses           $390  |\n"+
+                     "  |  With 3 Houses           $900  |\n"+
+                     "  |  With 4 Houses          $1100  |\n"+
+                     "  |         With Hotel $1275       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $150      |\n"+
+                     "  |      Houses cost $200 each     |\n"+
+                     "  |   Hotels, $200 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Green       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |     North Carolina Avenue      |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $26           |\n"+
+                     "  |  With 1 House            $130  |\n"+
+                     "  |  With 2 Houses           $390  |\n"+
+                     "  |  With 3 Houses           $900  |\n"+
+                     "  |  With 4 Houses          $1100  |\n"+
+                     "  |         With Hotel $1275       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $150      |\n"+
+                     "  |      Houses cost $200 each     |\n"+
+                     "  |   Hotels, $200 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Green       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |      Pennyslvania Avenue       |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $28           |\n"+
+                     "  |  With 1 House            $150  |\n"+
+                     "  |  With 2 Houses           $450  |\n"+
+                     "  |  With 3 Houses          $1000  |\n"+
+                     "  |  With 4 Houses          $1200  |\n"+
+                     "  |         With Hotel $1400       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $160      |\n"+
+                     "  |      Houses cost $200 each     |\n"+
+                     "  |   Hotels, $200 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Green       |\n"+
+                     "  +--------------------------------+",
+
+                     "  +--------------------------------+\n"+
+                     "  |      Short Line Railroad       |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $25           |\n"+
+                     "  |  If 2 R.R.'s are owned    $50  |\n"+
+                     "  |  If 3 R.R.'s are owned   $100  |\n"+
+                     "  |  If 4 R.R.'s are owned   $200  |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $100      |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |           Park Place           |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $35           |\n"+
+                     "  |  With 1 House            $175  |\n"+
+                     "  |  With 2 Houses           $500  |\n"+
+                     "  |  With 3 Houses          $1100  |\n"+
+                     "  |  With 4 Houses          $1300  |\n"+
+                     "  |         With Hotel $1500       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $175      |\n"+
+                     "  |      Houses cost $200 each     |\n"+
+                     "  |   Hotels, $200 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |        Color-group: Blue       |\n"+
+                     "  +--------------------------------+",0,
+
+                     "  +--------------------------------+\n"+
+                     "  |            Boardwalk           |\n"+
+                     "  |--------------------------------|\n"+
+                     "  |             Rent $50           |\n"+
+                     "  |  With 1 House            $200  |\n"+
+                     "  |  With 2 Houses           $600  |\n"+
+                     "  |  With 3 Houses          $1400  |\n"+
+                     "  |  With 4 Houses          $1700  |\n"+
+                     "  |         With Hotel $2000       |\n"+
+                     "  |                                |\n"+
+                     "  |       Mortgage Value $200      |\n"+
+                     "  |      Houses cost $200 each     |\n"+
+                     "  |   Hotels, $200 with 4 houses   |\n"+
+                     "  |   If a player owns the lots    |\n"+
+                     "  |       of any color-group,      |\n"+
+                     "  |   the base rent is doubled.    |\n"+
+                     "  |       Color-group: Blue        |\n"+
+                     "  +--------------------------------+"]
+
+        for i in range(40):
+            self.board.append([tile_types[i],tile_names[i],tile_cost[i],tile_house_data[i],tile_color_data[i],tile_card[i],5]) #5 represents who owns the tile. player 1 = 0, player 2 = 1, etc. 5 = nobody.
